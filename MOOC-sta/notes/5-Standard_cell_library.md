@@ -124,3 +124,4 @@ This implies that for the NLDM model, there would be four table models for speci
 
 ## Wireload Models
 
+![image-20230211224151949](assets/image-20230211224151949.png)
