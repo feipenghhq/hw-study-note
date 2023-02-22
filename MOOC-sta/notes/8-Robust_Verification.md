@@ -242,4 +242,3 @@ This is done by specifying a setup check on the rising edge and a hold check on 
 set_data_check -rise_from D2 -to D1 -setup 1.2
 set_data_check -fall_from D2 -to D1 -hold 0.8
 ```
-
