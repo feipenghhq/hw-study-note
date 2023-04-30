@@ -61,7 +61,7 @@ create_supply_port VDD_H -domain PD_cpu -direction <in/out/inout>
 connect_supply_net VDD_H -ports VDD_H
 ```
 
-- A supply port is defined under a power domain'
+- A supply port is defined under a power domain
 - A supply port has direction. Default direction is input
 
 #### Supply Nets/Ports - Example
@@ -198,8 +198,8 @@ set_level_shifter LS_CPU_VIDEO -domain PD_cpu -applies_to outputs -location self
 
 location can be: 
 
-- self (default): level shifted should be placed in the self domain.
-- parent: level shifted should be placed in the parent domain.
+- self (default): level shifter should be placed in the self domain.
+- parent: level shifter should be placed in the parent domain.
 - other
 - fanout: level shifted should be placed in each fanout domain.
 
@@ -229,3 +229,152 @@ set_isolation ISO_CPU_VIDEO \
 	-location self
 ```
 
+###  Input vs Output Isolation Cells
+
+Power supply for the isolation cells should come from the ON domain, instead of the domain that will be shut off.
+
+**Input isolation cells**: The isolation cells are located in the ON PD as input.
+
+Pros of input isolation: 
+
+- can use the power supply from the domain itself since this domain is ON.
+- no redundant isolation cell.
+
+Cons of input isolation:
+
+- make the design more complex. need to make sure that all the signals that need isolation are isolated.
+
+**Output isolation cells**: The isolation cells are located in the OFF PD as output.
+
+Pros of output isolation: 
+
+- simplify the design. it make sure that all the output signals are isolated
+
+Cons of output isolation:
+
+- Need to introduce another ON power rail to this power domain as the isolation cell needs power supply when the domain is OFF.
+- Might create redundant isolation cell.
+
+## Retention Cells
+
+Retention cells: save the value before power off and then restore the value after power on
+
+The purpose of having retention cells: when we power off some logic, we want to keep the value of some signals so that when we power back the logic, we can restore the state of the signals before powering off the logic. Otherwise, we have to reset the logic. This is a trade off between power and performance.
+
+There are two common retention cells:
+
+1. single port master/slave alive
+2. dual port (save/restore port) balloon latch
+
+### master/slave alive retention cells
+
+![image-20230426225447604](assets/image-20230426225447604.png)
+
+low leakage, high threshold voltage transistor is used. lower performance but more area saving.
+
+### balloon latch retention cells
+
+<img src="assets/image-20230426230440315.png" alt="image-20230426230440315" style="zoom:80%;" />
+
+Pros: better performance
+
+Cons: more area is used
+
+### UPF Command: set_retention
+
+```tcl
+set_retention retain_a_b \
+	-domain PD_a \
+	-retention_power_net <> \
+	-retention_ground_net <> \
+	-elements {}
+	
+set_retention_control retain-a_b \ 
+	-domain PD_a \
+	-save_signal {} \
+	-restore_signal {} \
+```
+
+## Flat UPF vs Hierarchical UPF
+
+<img src="assets/image-20230426231553265.png" alt="image-20230426231553265" style="zoom:80%;" />
+
+<img src="assets/image-20230426231740583.png" alt="image-20230426231740583" style="zoom:80%;" />
+
+Flat UPF: define everything under the DUT in a single UPF file
+
+Hierarchical UPF:
+
+Example:
+
+```tcl
+# dut.upf
+set_scope dut
+create_power_domain PD_dut
+create_supply_port VDD
+load_upf cpu.upf -scope cpu
+load_upf video.upf -scope video
+```
+
+```tcl
+# cpu.upf
+set_scope cpu
+...
+```
+
+```tcl
+# video.upf
+set_scope video
+...
+```
+
+## UPF Evolution 1.0 vs 2.0 vs 2.1 vs 3.0
+
+### 2007 - Accellera UPF 1.0
+
+- set_scope
+- create_power_domain
+- create_supply_port
+- create_supply_net
+- connect_supply_net
+- create_power_siwth
+- create_pst*
+- add_pst_state*
+- add_port_state*
+- set_ioslation
+- set_ioslation_control*
+- set_retention
+- set_retention_control*
+- load_upf
+- save_upf
+- upf_version
+
+\* *UPF 1.0/2.0 only*
+
+### 2009 - IEEE1801-2009 UPF 2.0 
+
+Introduced the following command
+
+- create_supply_set
+- add_power_state
+- connect_supply_set
+
+### 2013 IEEE1801-2013 UPF 2.1
+
+Removed the following command
+
+- ~~set_ioslation_control~~
+- ~~set_retention_control~~
+- ~~create_pst~~
+- ~~add_pst_state~~
+- ~~add_port_state~~
+
+Introduced the following command
+
+- begin_power_model
+- end_power_model
+- apply_power_model
+
+### 2015 IEEE1801-2015 UPF 3.0
+
+- Information Modeling Database (IMDB)
